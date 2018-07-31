@@ -2,7 +2,7 @@
 Scripts that send better discord notifications from sonarr and radarr
 
 ## To install
-1. `git clone https://github.com/samwiseg00/plex.git`
+1. `git clone https://github.com/samwiseg00/better-discord-notifications.git`
 
 1. Download python dependencies `pip3 install -r requirements.txt`
 
