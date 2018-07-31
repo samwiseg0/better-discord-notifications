@@ -13,3 +13,5 @@ Scripts that send better discord notifications from sonarr and radarr
 ### Samples
 
 <img height="600" alt="Example" src="https://i.imgur.com/mCB5lyi.png"> <img height="339" alt="Example" src="https://i.imgur.com/t6rWLWf.png">
+
+Project is inspired by https://github.com/Dec64/Better_slack_notifcations
