@@ -9,7 +9,7 @@ sonarr_url = 'https://tv.domain.ltd/'
 
 sonarr_icon = 'https://github.com/Sonarr/Sonarr/raw/develop/Logo/256.png'
 
-skyhook_url = 'http://skyhook.sonarr.tv/v1/tvdb/shows/en/' #should not need to change this
+skyhook_url = 'https://skyhook.sonarr.tv/v1/tvdb/shows/en/' #should not need to change this
 
 ######## Radarr Configuration ########
 radarr_discord_user = 'User'
