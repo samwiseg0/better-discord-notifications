@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import os
-import requests
 import logging
 import sys
 import json
 import datetime
 import re
+import requests
 from imdb import IMDb
 import script_config
 
@@ -32,14 +32,24 @@ def utc_now_iso():
 
 #Get ENV variables
 movie_id = os.environ.get('radarr_movie_id')
+if not movie_id:
+    test_mode = True
 
 media_title = os.environ.get('radarr_movie_title')
+if not media_title:
+    media_title = 'The Lego Movie'
 
 imdb_id = os.environ.get('radarr_movie_imdbid')
+if not imdb_id:
+    imdb_id = 'tt1490017'
 
 quality = os.environ.get('radarr_moviefile_quality')
+if not quality:
+    quality = 'Bluray-2160p'
 
 scene_name = os.environ.get('radarr_moviefile_scenename')
+if not scene_name:
+    scene_name = 'THIS IS A TEST MESSAGE'
 
 imdb_rating = get_imdb_rating(imdb_id)
 
@@ -52,7 +62,10 @@ radarr = requests.get(radarr_api_url)
 
 radarr_data = radarr.json()
 
-year = radarr_data['year']
+if not test_mode:
+    year = radarr_data['year']
+else:
+    year = '2014'
 
 #Get Trailer Link from Radarr
 try:
@@ -95,48 +108,48 @@ message = {
     'content': 'New movie downloaded - {} ({}) IMDb: {}'.format(media_title, year, imdb_rating),
     'embeds': [
         {
-        'author': {
-             'name': 'Movies',
-             'url': script_config.radarr_url,
-             'icon_url': script_config.radarr_icon
-             },
-        'title': '{} ({})'.format(media_title, year, imdb_rating),
-        'color': 3394662,
-        'url': '{}movies/{}-{}'.format(script_config.radarr_url, title_slug.lower(), radarr_id),
-        'image': {
-            'url': poster_path
+            'author': {
+                'name': 'Movies',
+                'url': script_config.radarr_url,
+                'icon_url': script_config.radarr_icon
             },
-        'fields': [
-            {
-            'name': 'Quality',
-            'value': quality,
-            'inline': True
+            'title': '{} ({})'.format(media_title, year),
+            'color': 3394662,
+            'url': '{}movies/{}-{}'.format(script_config.radarr_url, title_slug.lower(), radarr_id),
+            'image': {
+                'url': poster_path
             },
-            {
-            'name': 'Release Date',
-            'value': release,
-            'inline': True
-            }
+            'fields': [
+                {
+                    'name': 'Quality',
+                    'value': quality,
+                    'inline': True
+                },
+                {
+                    'name': 'Release Date',
+                    'value': release,
+                    'inline': True
+                }
             ]
         },
         {
-        'title': 'Overview',
-        'color': 3381708,
-        'description': overview
+            'title': 'Overview',
+            'color': 3381708,
+            'description': overview
         },
         {
-        'title': 'Trailer',
-         'color': 3394662,
-         'description': trailer_link,
+            'title': 'Trailer',
+            'color': 3394662,
+            'description': trailer_link,
         },
         {
-        'title': 'IMDb URL',
-         'color': 13421619,
-         'description': imdb_url,
-         'footer': {
-         'text': '{}'.format(scene_name)
-         },
-         'timestamp': utc_now_iso()
+            'title': 'IMDb URL',
+            'color': 13421619,
+            'description': imdb_url,
+            'footer': {
+                'text': '{}'.format(scene_name)
+            },
+            'timestamp': utc_now_iso()
         }
 
     ]
