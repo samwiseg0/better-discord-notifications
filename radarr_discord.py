@@ -30,10 +30,12 @@ def utc_now_iso():
     utcnow = datetime.datetime.utcnow()
     return utcnow.isoformat()
 
+TEST_MODE = False
+
 #Get ENV variables
 movie_id = os.environ.get('radarr_movie_id')
 if not movie_id:
-    test_mode = True
+    TEST_MODE = True
 
 media_title = os.environ.get('radarr_movie_title')
 if not media_title:
@@ -48,8 +50,6 @@ if not quality:
     quality = 'Bluray-2160p'
 
 scene_name = os.environ.get('radarr_moviefile_scenename')
-if not scene_name:
-    scene_name = 'THIS IS A TEST MESSAGE'
 
 imdb_rating = get_imdb_rating(imdb_id)
 
@@ -62,9 +62,12 @@ radarr = requests.get(radarr_api_url)
 
 radarr_data = radarr.json()
 
-if not test_mode:
+if not TEST_MODE:
     year = radarr_data['year']
-else:
+
+if TEST_MODE:
+    scene_name = 'THIS IS A TEST MESSAGE'
+
     year = '2014'
 
 #Get Trailer Link from Radarr
@@ -155,8 +158,11 @@ message = {
     ]
 }
 
+# Log json
 log.info(json.dumps(message, sort_keys=True, indent=4, separators=(',', ': ')))
 
 # Send notification
-r = requests.post(script_config.radarr_discord_url, headers=discord_headers, json=message)
-print (r.content)
+sender = requests.post(script_config.radarr_discord_url, headers=discord_headers, json=message)
+
+# Log response from discord
+log.info(sender.content)
