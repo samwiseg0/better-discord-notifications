@@ -5,7 +5,7 @@ sonarr_discord_user = 'User'
 
 sonarr_discord_url = 'https://discordapp.com/api/webhooks/XXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXX'
 
-sonarr_url = 'https://tv.domain.ltd/'
+sonarr_url = 'https://tv.domain.ltd/' # Make sure you include the trailing /
 
 sonarr_icon = 'https://github.com/Sonarr/Sonarr/raw/develop/Logo/256.png'
 
@@ -16,7 +16,7 @@ radarr_discord_user = 'User'
 
 radarr_discord_url = 'https://discordapp.com/api/webhooks/XXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXX'
 
-radarr_url = 'https://movies.domain.ltd/'
+radarr_url = 'https://movies.domain.ltd/' # Make sure you include the trailing /
 
 radarr_key = 'XXXXXXXXXXXXXXXX'
 
