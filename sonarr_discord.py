@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import os
-import requests
 import logging
 import sys
 import json
 import datetime
+import requests
 import script_config
 
 discord_headers = {'content-type': 'application/json'}
@@ -14,115 +14,137 @@ log_filename = os.path.join(os.path.dirname(sys.argv[0]), 'sonarr_notification.l
 logging.basicConfig(
     filename=log_filename,
     level=logging.INFO,
-    format='[%(asctime)s] %(levelname)s - %(message)s'
-)
+    format='[%(asctime)s] %(levelname)s - %(message)s')
 log = logging.getLogger('Sonarr')
 
 def utc_now_iso():
     utcnow = datetime.datetime.utcnow()
     return utcnow.isoformat()
 
-#Get/set ENV variables
-season = os.environ.get('sonarr_episodefile_seasonnumber')
+def main():
+    # Get/set ENV variables
+    eventtype = os.environ.get('sonarr_eventtype')
 
-episode = os.environ.get('sonarr_episodefile_episodenumbers')
+    season = os.environ.get('sonarr_episodefile_seasonnumber')
 
-tvdb_id = os.environ.get('sonarr_series_tvdbid')
+    episode = os.environ.get('sonarr_episodefile_episodenumbers')
 
-scene_name = os.environ.get('sonarr_episodefile_scenename')
+    tvdb_id = os.environ.get('sonarr_series_tvdbid')
 
-media_title = os.environ.get('sonarr_series_title')
+    scene_name = os.environ.get('sonarr_episodefile_scenename')
 
-episode_title = os.environ.get('sonarr_episodefile_episodetitles')
+    media_title = os.environ.get('sonarr_series_title')
 
-quality = os.environ.get('sonarr_episodefile_quality')
+    episode_title = os.environ.get('sonarr_episodefile_episodetitles')
 
-is_upgrade = os.environ.get('sonarr_isupgrade')
+    quality = os.environ.get('sonarr_episodefile_quality')
 
-overview = ''
+    is_upgrade = os.environ.get('sonarr_isupgrade')
 
-# Get show information from skyhook
-get_skyhook = requests.get(script_config.skyhook_url + str(tvdb_id))
+    overview = ''
 
-skyhook_data = get_skyhook.json()
+    if eventtype == 'Test':
+        log.info('Sonarr script test succeeded.')
+        sys.exit(0)
 
-title_slug = skyhook_data['slug']
+    # Get show information from skyhook
+    get_skyhook = requests.get(script_config.skyhook_url + str(tvdb_id))
 
-# Get banner image for show
-try:
-    banner = skyhook_data['seasons'][int(season)]['images'][1]['url']
-except:
-    banner = skyhook_data['images'][1]['url']
+    skyhook_data = get_skyhook.json()
 
-for line in skyhook_data['episodes']:
+    title_slug = skyhook_data['slug']
+
+    # Get banner image for show
     try:
-        if int(line['seasonNumber']) == int(season) and int(line['episodeNumber']) == int(episode):
-            if line['overview']:
-                overview = line['overview']
-            if line['image']:
-                thumb = line['image']
+        banner = skyhook_data['seasons'][int(season)]['images'][1]['url']
     except Exception as ex:
-        print (ex)
-        pass
+        log.error(ex)
+        banner = skyhook_data['images'][1]['url']
 
-if not overview:
-    overview = 'None'
+    for line in skyhook_data['episodes']:
+        try:
+            if int(line['seasonNumber']) == int(season) and \
+                    int(line['episodeNumber']) == int(episode):
 
-if len(str(season)) == 1:
-    season = '0{}'.format(season)
+                if line['overview']:
+                    overview = line['overview']
 
-if len(str(episode)) == 1:
-    episode = '0{}'.format(episode)
+        except Exception as ex:
+            log.error(ex)
 
-message = {
-    'username': script_config.sonarr_discord_user,
-    'content': 'New episode downloaded - {}: {}'.format(media_title, episode_title),
-    'embeds': [
-        {
-        'author': {
-             'name': 'TV',
-             'url': script_config.sonarr_url,
-             'icon_url': script_config.sonarr_icon
-             },
-        'title': '{}: {}'.format(media_title, episode_title),
-        'color': 3394662,
-        'url': '{}series/{}'.format(script_config.sonarr_url, title_slug),
-        'image': {
-            'url': banner
-            },
-        'fields': [
+
+    if not overview:
+        overview = 'None'
+
+    if len(str(season)) == 1:
+        season = '0{}'.format(season)
+
+    if len(str(episode)) == 1:
+        episode = '0{}'.format(episode)
+
+    if is_upgrade == 'True':
+        content = 'Upgraded Episode - {}: {}'.format(media_title, episode_title)
+        is_upgrade = 'Yes!'
+
+    else:
+        content = 'New episode downloaded - {}: {}'.format(media_title, episode_title)
+        is_upgrade = 'Nope'
+
+
+    message = {
+        "username": script_config.sonarr_discord_user,
+        "content": content,
+        "embeds": [
             {
-            'name': 'Episode',
-            'value': 's{}e{}'.format(season, episode),
-            'inline': True
+                "author": {
+                    "name": "TV",
+                    "url": script_config.sonarr_url,
+                    "icon_url": script_config.sonarr_icon
+                    },
+                "title": "{}: {}".format(media_title, episode_title),
+                "color": 3394662,
+                "url": "{}series/{}".format(script_config.sonarr_url, title_slug),
+                "image": {
+                    "url": banner
+                    },
+                "fields": [
+                    {
+                        "name": "Episode",
+                        "value": "s{}e{}".format(season, episode),
+                        "inline": True
+                    },
+                    {
+                        "name": "Quality",
+                        "value": quality,
+                        "inline": True
+                    },
+                    {
+                        "name": "Upgrade?",
+                        "value": is_upgrade,
+                        "inline": True
+                    }
+                    ]
             },
             {
-            'name': 'Quality',
-            'value': quality,
-            'inline': True
-            },
-            {
-            'name': 'Upgrade?',
-            'value': is_upgrade,
-            'inline': True
+                "title": "Overview",
+                "color": 3381708,
+                "description": overview,
+                "footer": {
+                    "text": "{}".format(scene_name)
+                    },
+                "timestamp": utc_now_iso()
             }
-            ]
-        },
-        {
-        'title': 'Overview',
-        'color': 3381708,
-        'description': overview,
-         'footer': {
-         'text': '{}'.format(scene_name)
-         },
-         'timestamp': utc_now_iso()
-        }
 
-    ]
-}
+        ]
+    }
 
-log.info(json.dumps(message, sort_keys=True, indent=4, separators=(',', ': ')))
+    log.info(json.dumps(message, sort_keys=True, indent=4, separators=(',', ': ')))
 
-# Send notification
-r = requests.post(script_config.sonarr_discord_url, headers=discord_headers, json=message)
-print (r.content)
+    # Send notification
+    sender = requests.post(script_config.sonarr_discord_url, headers=discord_headers, json=message)
+
+    # Log response
+    log.info(sender.content)
+
+# Call main
+main()
