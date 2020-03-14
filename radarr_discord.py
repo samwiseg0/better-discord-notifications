@@ -6,7 +6,6 @@ import json
 import datetime
 import re
 import requests
-from imdb import IMDb
 import script_config
 
 discord_headers = {'content-type': 'application/json'}
@@ -21,16 +20,23 @@ logging.basicConfig(
 log = logging.getLogger('Radarr')
 
 def get_imdb_rating(imdb_id):
-    imdb_id = imdb_id.replace('tt', '')
-    imdb_lookup = IMDb()
-    imdb_data = imdb_lookup.get_movie(imdb_id)
-    return imdb_data.get('rating')
+    get_imdb = requests.get('https://imdb-api.com/API/Ratings/{}/{}'.format(script_config.radarr_imdbapi_key, imdb_id)).json()
+    imdb_rating = get_imdb['imDb']
+    if not imdb_rating:
+            imdb_rating = "Unknown"
+    return imdb_rating
 
 def utc_now_iso():
     utcnow = datetime.datetime.utcnow()
     return utcnow.isoformat()
 
-TEST_MODE = False
+# Get Event Type
+eventtype = os.environ.get('radarr_eventtype')
+
+if eventtype == 'test':
+    TEST_MODE = True
+else:
+    TEST_MODE = False
 
 #Get ENV variables
 movie_id = os.environ.get('radarr_movie_id')
