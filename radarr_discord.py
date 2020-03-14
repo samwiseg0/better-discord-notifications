@@ -124,7 +124,7 @@ message = {
             },
             'title': '{} ({})'.format(media_title, year),
             'color': 3394662,
-            'url': '{}movies/{}-{}'.format(script_config.radarr_url, title_slug.lower(), radarr_id),
+            'url': '{}movie/{}-{}'.format(script_config.radarr_url, title_slug.lower(), radarr_id),
             'image': {
                 'url': poster_path
             },
