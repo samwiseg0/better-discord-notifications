@@ -82,7 +82,7 @@ try:
 except:
     trailer_link = 'None'
 
-title_slug = re.sub(r'[?|$|.|!|:]', r'', media_title).replace(' ', '-')
+title_slug = re.sub(r'[?|$|.|!|:|/]', r'', media_title).replace(' ', '-')
 
 #Get data from TMDB
 moviedb_api_url = 'https://api.themoviedb.org/3/find/{}?api_key={}&external_source=imdb_id'.format(imdb_id, script_config.moviedb_key)
