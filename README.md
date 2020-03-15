@@ -10,7 +10,7 @@ Scripts that send better discord notifications from sonarr and radarr
 
 1. On sonarr/radarr add the script under, `settings > connect > Customscript` Run on download and on upgrade. Point to `radarr_discord.py` or `sonarr_discord.py`.
 
-1. Docker folder has been added and includes local copies of the modules required. It should work inside sonarr v3 and radarr v3 containers. 
+_Note: Docker folder has been added and includes local copies of the modules required. It should work inside sonarr v3 and radarr v3 containers._
 
 ### Samples
 
