@@ -24,6 +24,7 @@ moviedb_key = 'XXXXXXXXXXXXXXXX'
 
 radarr_icon = 'https://github.com/Radarr/Radarr/raw/aphrodite/Logo/128.png'
 
+# Register for an API here https://imdb-api.com/Identity/Account/Register
 radarr_imdbapi_key = 'k_0J01vR3i'
 
 ##################################################
