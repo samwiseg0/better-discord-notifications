@@ -22,6 +22,8 @@ radarr_key = 'XXXXXXXXXXXXXXXX'
 
 moviedb_key = 'XXXXXXXXXXXXXXXX'
 
-radarr_icon = 'https://github.com/Radarr/Radarr/raw/develop/Logo/256.png'
+radarr_icon = 'https://github.com/Radarr/Radarr/raw/aphrodite/Logo/128.png'
+
+radarr_imdbapi_key = 'k_0J01vR3i'
 
 ##################################################
