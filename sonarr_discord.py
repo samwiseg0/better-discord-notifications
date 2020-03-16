@@ -3,6 +3,7 @@ import os
 import logging
 import sys
 import json
+import re
 import datetime
 import requests
 import script_config
@@ -41,8 +42,6 @@ def main():
 
     is_upgrade = os.environ.get('sonarr_isupgrade')
 
-    overview = ''
-
     if eventtype == 'Test':
         log.info('Sonarr script test succeeded.')
         sys.exit(0)
@@ -58,7 +57,7 @@ def main():
     try:
         banner = skyhook_data['seasons'][int(season)]['images'][1]['url']
     except Exception as ex:
-        log.error(ex)
+        log.error('Season banner not found! Failing back to series banner... ({})'.format(ex))
         banner = skyhook_data['images'][1]['url']
 
     for line in skyhook_data['episodes']:
@@ -68,13 +67,12 @@ def main():
 
                 if line['overview']:
                     overview = line['overview']
+                else:
+                    overview = 'None'
 
         except Exception as ex:
-            log.error(ex)
-
-
-    if not overview:
-        overview = 'None'
+            log.error('Failed to get episode from skyhook! Setting to overview to "None"... ({})'.format(ex))
+            overview = 'None'
 
     if len(str(season)) == 1:
         season = '0{}'.format(season)
@@ -90,6 +88,21 @@ def main():
         content = 'New episode downloaded - {}: {}'.format(media_title, episode_title)
         is_upgrade = 'Nope'
 
+    try:
+        content_rating = skyhook_data['contentRating']
+    except:
+        content_rating = 'Unset'
+
+    try:
+        network = skyhook_data['network']
+    except:
+        network = 'Unset'
+
+    try:
+        genres = json.dumps(skyhook_data['genres'])
+        genres = re.sub(r'[?|$|.|!|:|/|\]|\[|\"]', r'', genres)
+    except:
+        genres = 'Unset'
 
     message = {
         "username": script_config.sonarr_discord_user,
@@ -107,6 +120,11 @@ def main():
                 "image": {
                     "url": banner
                     },
+            },
+            {
+                "title": "Overview",
+                "color": 3381708,
+                "description": overview,
                 "fields": [
                     {
                         "name": "Episode",
@@ -122,13 +140,23 @@ def main():
                         "name": "Upgrade?",
                         "value": is_upgrade,
                         "inline": True
+                    },
+                    {
+                        "name": "Content Rating",
+                        "value": content_rating,
+                        "inline": True
+                    },
+                    {
+                        "name": "Network",
+                        "value": network,
+                        "inline": True
+                    },
+                    {
+                        "name": "Genres",
+                        "value": genres,
+                        "inline": True
                     }
-                    ]
-            },
-            {
-                "title": "Overview",
-                "color": 3381708,
-                "description": overview,
+                    ],
                 "footer": {
                     "text": "{}".format(scene_name)
                     },
