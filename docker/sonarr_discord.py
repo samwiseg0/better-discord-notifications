@@ -22,6 +22,10 @@ def utc_now_iso():
     utcnow = datetime.datetime.utcnow()
     return utcnow.isoformat()
 
+def convert_string_to_int(list):
+    int_list = [int(x) for x in list.split(',') if x.strip().isdigit()]
+    return int_list
+
 def main():
     # Get/set ENV variables
     eventtype = os.environ.get('sonarr_eventtype')
@@ -63,16 +67,16 @@ def main():
     for line in skyhook_data['episodes']:
         try:
             if int(line['seasonNumber']) == int(season) and \
-                    int(line['episodeNumber']) == int(episode):
+                    int(line['episodeNumber']) == convert_string_to_int(episode)[0]:
 
                 if line['overview']:
                     overview = line['overview']
                 else:
-                    overview = 'None'
+                    overview = skyhook_data['overview']
 
         except Exception as ex:
-            log.error('Failed to get episode from skyhook! Setting to overview to "None"... ({})'.format(ex))
-            overview = 'None'
+            log.error('Failed to get episode from skyhook! Failing back to series overview... ({})'.format(ex))
+            overview = skyhook_data['overview']
 
     if len(str(season)) == 1:
         season = '0{}'.format(season)
