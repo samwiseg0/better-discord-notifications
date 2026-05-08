@@ -94,7 +94,7 @@ pytest tests/ -v --cov=. --cov-report=term-missing
 
 ## Samples
 
-<img height="600" alt="Example" src="https://i.imgur.com/mCB5lyi.png"> <img height="339" alt="Example" src="https://i.imgur.com/t6rWLWf.png">
+<img width="400" alt="Sonarr example" src="images/sonarr_example.png"> <img width="400" alt="Radarr example" src="images/radarr_example.png">
 
 ---
 
