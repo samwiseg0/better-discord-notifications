@@ -36,6 +36,21 @@ def get_episode_overview(episodes, season, episode_num, fallback):
     return fallback
 
 
+def get_last_download(cfg):
+    url = f'{cfg.sonarr_url.rstrip("/")}/api/v3/history?pageSize=1&sortKey=date&sortDirection=descending&includeEpisode=true&includeSeries=true&apikey={cfg.sonarr_key}'
+    log.info(f'Fetching Sonarr history from: {cfg.sonarr_url}')
+    record = requests.get(url).json()['records'][0]
+    return {
+        'season':        str(record['episode']['seasonNumber']),
+        'episode':       str(record['episode']['episodeNumber']),
+        'tvdb_id':       str(record['series']['tvdbId']),
+        'media_title':   record['series']['title'],
+        'episode_title': record['episode'].get('title', ''),
+        'quality':       record['quality']['quality']['name'],
+        'scene_name':    record.get('sourceTitle', ''),
+    }
+
+
 def get_season_banner(skyhook_data, season):
     try:
         return skyhook_data['seasons'][season]['images'][1]['url']
@@ -47,19 +62,31 @@ def get_season_banner(skyhook_data, season):
 # --- Main ---
 
 def run(cfg):
-    eventtype     = os.environ.get('sonarr_eventtype')
-    season        = os.environ.get('sonarr_episodefile_seasonnumber')
-    episode       = os.environ.get('sonarr_episodefile_episodenumbers')
-    tvdb_id       = os.environ.get('sonarr_series_tvdbid')
-    scene_name    = os.environ.get('sonarr_episodefile_scenename') or ''
-    media_title   = os.environ.get('sonarr_series_title')
-    episode_title = os.environ.get('sonarr_episodefile_episodetitles')
-    quality       = os.environ.get('sonarr_episodefile_quality')
-    is_upgrade    = os.environ.get('sonarr_isupgrade')
+    TEST_MODE = os.environ.get('sonarr_eventtype', '').lower() == 'test'
 
-    if eventtype == 'Test':
-        log.info('Sonarr script test succeeded.')
-        sys.exit(0)
+    if TEST_MODE:
+        try:
+            last          = get_last_download(cfg)
+            season        = last['season']
+            episode       = last['episode']
+            tvdb_id       = last['tvdb_id']
+            media_title   = last['media_title']
+            episode_title = last['episode_title']
+            quality       = last['quality']
+            scene_name    = last['scene_name']
+            is_upgrade    = 'False'
+        except Exception as ex:
+            log.error(f'Could not fetch last download for test notification: {ex}')
+            sys.exit(1)
+    else:
+        season        = os.environ.get('sonarr_episodefile_seasonnumber')
+        episode       = os.environ.get('sonarr_episodefile_episodenumbers')
+        tvdb_id       = os.environ.get('sonarr_series_tvdbid')
+        scene_name    = os.environ.get('sonarr_episodefile_scenename') or ''
+        media_title   = os.environ.get('sonarr_series_title')
+        episode_title = os.environ.get('sonarr_episodefile_episodetitles')
+        quality       = os.environ.get('sonarr_episodefile_quality')
+        is_upgrade    = os.environ.get('sonarr_isupgrade')
 
     # Fetch show data from Skyhook
     try:

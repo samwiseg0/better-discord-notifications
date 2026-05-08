@@ -68,6 +68,26 @@ See [`script_config.example.py`](script_config.example.py) for all available opt
 | [TMDb](https://www.themoviedb.org/settings/api) | Poster art, release dates, directors | Free |
 | [OMDb](https://www.omdbapi.com/apikey.aspx)     | Rotten Tomatoes score                | Free |
 
+## Development & Testing
+
+Install dev dependencies (includes pytest):
+
+```sh
+pip install -r requirements-dev.txt
+```
+
+Run the test suite:
+
+```sh
+pytest tests/ -v
+```
+
+Run with coverage:
+
+```sh
+pytest tests/ -v --cov=. --cov-report=term-missing
+```
+
 ## Samples
 
 <img height="600" alt="Example" src="https://i.imgur.com/mCB5lyi.png"> <img height="339" alt="Example" src="https://i.imgur.com/t6rWLWf.png">

@@ -10,6 +10,7 @@ class Standard:
     sonarr_discord_user = 'User'
     sonarr_discord_url  = 'https://discordapp.com/api/webhooks/XXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXX'
     sonarr_url          = 'https://tv.domain.ltd/'          # include trailing /
+    sonarr_key          = 'XXXXXXXXXXXXXXXX'
     sonarr_icon         = 'https://raw.githubusercontent.com/Sonarr/Sonarr/develop/Logo/128.png'
     skyhook_url         = 'https://skyhook.sonarr.tv/v1/tvdb/shows/en/'  # no need to change
 
@@ -27,5 +28,6 @@ class Standard:
 
 class FourK(Standard):
     sonarr_url = 'https://tv4k.domain.ltd/'
+    sonarr_key = 'XXXXXXXXXXXXXXXX'
     radarr_url = 'https://movies4k.domain.ltd/'
     radarr_key = 'XXXXXXXXXXXXXXXX'

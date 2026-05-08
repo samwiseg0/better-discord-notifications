@@ -25,7 +25,7 @@ DISCORD_HEADERS = {'content-type': 'application/json'}
 
 def get_quality_profile(cfg, profile_id):
     try:
-        url = f'{cfg.radarr_url}api/v3/qualityprofile/{profile_id}?apikey={cfg.radarr_key}'
+        url = f'{cfg.radarr_url.rstrip("/")}/api/v3/qualityprofile/{profile_id}?apikey={cfg.radarr_key}'
         return requests.get(url).json()['name']
     except Exception as ex:
         log.error(f'Could not get quality profile from Radarr: {ex}')
@@ -81,6 +81,19 @@ def human_size(nbytes):
     return f'{value} {suffixes[i]}'
 
 
+def get_last_download(cfg):
+    url = f'{cfg.radarr_url.rstrip("/")}/api/v3/history?pageSize=1&sortKey=date&sortDirection=descending&includeMovie=true&apikey={cfg.radarr_key}'
+    log.info(f'Fetching Radarr history from: {cfg.radarr_url}')
+    record = requests.get(url).json()['records'][0]
+    return {
+        'movie_id':    str(record['movieId']),
+        'media_title': record['movie']['title'],
+        'imdb_id':     record['movie'].get('imdbId', 'tt1490017'),
+        'quality':     record['quality']['quality']['name'],
+        'scene_name':  record.get('sourceTitle', ''),
+    }
+
+
 def rt_url_for(title):
     slug = re.sub(r'[^a-zA-Z0-9\s]', '', title).lower().replace(' ', '_')
     return f'https://www.rottentomatoes.com/m/{slug}'
@@ -90,34 +103,52 @@ def rt_url_for(title):
 
 def run(cfg):
     # Environment variables
-    TEST_MODE   = os.environ.get('radarr_eventtype') == 'test'
-    movie_id    = os.environ.get('radarr_movie_id')            or 10
-    media_title = os.environ.get('radarr_movie_title')         or 'The Lego Movie'
-    imdb_id     = os.environ.get('radarr_movie_imdbid')        or 'tt1490017'
-    quality     = os.environ.get('radarr_moviefile_quality')   or 'Bluray-2160p'
-    scene_name  = os.environ.get('radarr_moviefile_scenename') or ''
+    TEST_MODE = os.environ.get('radarr_eventtype', '').lower() == 'test'
+
+    if TEST_MODE:
+        try:
+            last        = get_last_download(cfg)
+            movie_id    = last['movie_id']
+            media_title = last['media_title']
+            imdb_id     = last['imdb_id']
+            quality     = last['quality']
+            scene_name  = last['scene_name']
+        except Exception as ex:
+            log.error(f'Could not fetch last download for test notification: {ex}')
+            sys.exit(1)
+    else:
+        movie_id    = os.environ.get('radarr_movie_id')
+        media_title = os.environ.get('radarr_movie_title')
+        imdb_id     = os.environ.get('radarr_movie_imdbid')
+        quality     = os.environ.get('radarr_moviefile_quality')
+        scene_name  = os.environ.get('radarr_moviefile_scenename') or ''
 
     # Fetch external data
     imdb_rating = get_imdb_rating(imdb_id)
     rt_score    = get_rt_score(cfg, imdb_id)
 
-    radarr_data = requests.get(
-        f'{cfg.radarr_url}api/v3/movie/{movie_id}?apikey={cfg.radarr_key}'
-    ).json()
+    try:
+        response    = requests.get(f'{cfg.radarr_url.rstrip("/")}/api/v3/movie/{movie_id}?apikey={cfg.radarr_key}')
+        response.raise_for_status()
+        radarr_data = response.json()
+    except Exception as ex:
+        log.error(f'Could not fetch movie data from Radarr (movie_id={movie_id}): {ex}')
+        sys.exit(1)
 
-    tmdb_results = requests.get(
-        f'https://api.themoviedb.org/3/find/{imdb_id}'
-        f'?api_key={cfg.moviedb_key}&external_source=imdb_id'
-    ).json()
-    tmdb_movie    = tmdb_results['movie_results'][0]
-    tmdb_movie_id = tmdb_movie['id']
+    try:
+        response     = requests.get(
+            f'https://api.themoviedb.org/3/find/{imdb_id}'
+            f'?api_key={cfg.moviedb_key}&external_source=imdb_id'
+        )
+        response.raise_for_status()
+        tmdb_movie    = response.json()['movie_results'][0]
+        tmdb_movie_id = tmdb_movie['id']
+    except Exception as ex:
+        log.error(f'Could not fetch movie data from TMDb (imdb_id={imdb_id}): {ex}')
+        sys.exit(1)
 
     # Parse data
-    if TEST_MODE:
-        scene_name = 'A.Movie.2020.TrueHD.Atmos.AC3.MULTISUBS.UHD.4k.BluRay.x264.HQ-TUSAHD'
-        year = '2014'
-    else:
-        year = radarr_data['year']
+    year = radarr_data['year']
 
     try:
         trailer_link = f'https://www.youtube.com/watch?v={radarr_data["youTubeTrailerId"]}'
@@ -168,7 +199,7 @@ def run(cfg):
                 },
                 'title': f'{media_title} ({year})',
                 'color': 3394662,
-                'url': f'{cfg.radarr_url}movie/{tmdb_movie_id}',
+                'url': f'{cfg.radarr_url.rstrip("/")}/movie/{tmdb_movie_id}',
                 'image': {'url': poster_url},
             },
             {
