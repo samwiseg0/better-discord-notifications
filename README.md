@@ -68,6 +68,10 @@ See [`script_config.example.py`](script_config.example.py) for all available opt
 | [TMDb](https://www.themoviedb.org/settings/api) | Poster art, release dates, directors | Free |
 | [OMDb](https://www.omdbapi.com/apikey.aspx)     | Rotten Tomatoes score                | Free |
 
+## Test Mode
+
+Clicking **Test** in Sonarr/Radarr's Connect settings triggers the script with `eventtype=test`. Rather than sending a notification with dummy placeholder data, the script queries the Sonarr/Radarr history API and sends a real notification using the most recently downloaded item. This means the test result looks identical to a live notification.
+
 ## Development & Testing
 
 Install dev dependencies (includes pytest):
