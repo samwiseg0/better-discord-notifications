@@ -1,30 +1,31 @@
-######## SET YOUR CONFIGURATION ITEMS HERE ########
+######## SET YOUR CONFIGURATION HERE ########
+# Copy this file to script_config.py and fill in your values.
+# script_config.py is gitignored so your credentials stay local.
+#
+# FourK inherits all Standard values — only override what differs
+# (e.g. a separate 4K Radarr/Sonarr instance with its own URL/API key).
 
-######## Sonarr Configuration ########
-sonarr_discord_user = 'User'
+class Standard:
+    ######## Sonarr ########
+    sonarr_discord_user = 'User'
+    sonarr_discord_url  = 'https://discordapp.com/api/webhooks/XXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXX'
+    sonarr_url          = 'https://tv.domain.ltd/'          # include trailing /
+    sonarr_icon         = 'https://raw.githubusercontent.com/Sonarr/Sonarr/develop/Logo/128.png'
+    skyhook_url         = 'https://skyhook.sonarr.tv/v1/tvdb/shows/en/'  # no need to change
 
-sonarr_discord_url = 'https://discordapp.com/api/webhooks/XXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXX'
+    ######## Radarr ########
+    radarr_discord_user = 'User'
+    radarr_discord_url  = 'https://discordapp.com/api/webhooks/XXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXX'
+    radarr_url          = 'https://movies.domain.ltd/'      # include trailing /
+    radarr_key          = 'XXXXXXXXXXXXXXXX'
+    radarr_icon         = 'https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/128.png'
 
-sonarr_url = 'https://tv.domain.ltd/' # Make sure you include the trailing /
+    ######## External APIs ########
+    moviedb_key        = 'XXXXXXXXXXXXXXXX'                 # themoviedb.org
+    radarr_imdbapi_key = 'XXXXXXXXXXXX'                     # omdbapi.com — register at https://www.omdbapi.com/apikey.aspx
 
-sonarr_icon = 'https://github.com/Sonarr/Sonarr/raw/develop/Logo/256.png'
 
-skyhook_url = 'https://skyhook.sonarr.tv/v1/tvdb/shows/en/' #should not need to change this
-
-######## Radarr Configuration ########
-radarr_discord_user = 'User'
-
-radarr_discord_url = 'https://discordapp.com/api/webhooks/XXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXX'
-
-radarr_url = 'https://movies.domain.ltd/' # Make sure you include the trailing /
-
-radarr_key = 'XXXXXXXXXXXXXXXX'
-
-moviedb_key = 'XXXXXXXXXXXXXXXX'
-
-radarr_icon = 'https://github.com/Radarr/Radarr/raw/aphrodite/Logo/128.png'
-
-# Register for an API here https://imdb-api.com/Identity/Account/Register
-radarr_imdbapi_key = 'XXXXXXXXXXXX'
-
-##################################################
+class FourK(Standard):
+    sonarr_url = 'https://tv4k.domain.ltd/'
+    radarr_url = 'https://movies4k.domain.ltd/'
+    radarr_key = 'XXXXXXXXXXXXXXXX'
