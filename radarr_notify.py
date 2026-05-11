@@ -52,6 +52,33 @@ def get_rt_score(cfg, imdb_id):
     return '?'
 
 
+def get_tmdb_release_dates(cfg, tmdb_movie_id):
+    """Return (digital, physical) as date objects from TMDb, preferring US dates."""
+    digital = None
+    physical = None
+    try:
+        url = f'https://api.themoviedb.org/3/movie/{tmdb_movie_id}/release_dates?api_key={cfg.moviedb_key}'
+        results = requests.get(url).json().get('results', [])
+        log.debug(f'TMDb release_dates raw: {results}')
+        ordered = sorted(results, key=lambda r: (r['iso_3166_1'] != 'US'))
+        for region in ordered:
+            for entry in region.get('release_dates', []):
+                release_type = entry.get('type')
+                try:
+                    parsed = datetime.strptime(entry.get('release_date', '')[:10], '%Y-%m-%d').date()
+                except ValueError:
+                    continue
+                if release_type == 4 and digital is None:    # Digital
+                    digital = parsed
+                elif release_type == 5 and physical is None:  # Physical
+                    physical = parsed
+            if digital and physical:
+                break
+    except Exception as ex:
+        log.error(f'Could not get release dates from TMDb: {ex}')
+    return digital, physical
+
+
 def get_tmdb_directors(cfg, tmdb_movie_id):
     try:
         url = f'https://api.themoviedb.org/3/movie/{tmdb_movie_id}/credits?api_key={cfg.moviedb_key}'
@@ -163,12 +190,26 @@ def run(cfg):
         release = 'None'
 
     try:
-        physical_release = datetime.strptime(
+        radarr_physical = datetime.strptime(
             radarr_data['physicalRelease'], '%Y-%m-%dT%H:%M:%SZ'
-        ).strftime('%B %d, %Y')
+        ).date()
     except Exception:
-        log.warning('Missing physical release date from Radarr')
-        physical_release = 'None'
+        radarr_physical = None
+    tmdb_digital, tmdb_physical = get_tmdb_release_dates(cfg, tmdb_movie_id)
+
+    today = datetime.now(timezone.utc).date()
+    candidates = [
+        ('Digital Release',  tmdb_digital),
+        ('Physical Release', tmdb_physical or radarr_physical),
+    ]
+    candidates = [(label, d) for label, d in candidates if d]
+    if candidates:
+        release_label, release_date_obj = min(candidates, key=lambda x: abs((x[1] - today).days))
+        home_release_label = release_label
+        home_release_date  = release_date_obj.strftime('%B %d, %Y')
+    else:
+        home_release_label = 'Digital/Physical Release'
+        home_release_date  = 'None'
 
     overview        = tmdb_movie.get('overview') or 'None'
     genres          = ', '.join(radarr_data.get('genres', [])) or 'None'
@@ -210,7 +251,7 @@ def run(cfg):
                     {'name': 'Quality',               'value': quality,           'inline': True},
                     {'name': 'Quality Profile',       'value': quality_profile,   'inline': True},
                     {'name': 'Release Date',          'value': release,           'inline': True},
-                    {'name': 'Physical Release Date', 'value': physical_release,  'inline': True},
+                    {'name': home_release_label,      'value': home_release_date, 'inline': True},
                     {'name': 'File Size',             'value': file_size,         'inline': True},
                     {'name': 'Ratings',               'value': ratings_text,      'inline': True},
                     {'name': 'Director',              'value': directors,         'inline': True},

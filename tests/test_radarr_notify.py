@@ -1,6 +1,7 @@
 import os
 import sys
 import pytest
+from datetime import date, timedelta, datetime, timezone
 from unittest.mock import patch, MagicMock
 
 import radarr_notify
@@ -122,6 +123,69 @@ class TestGetRtScore:
             assert radarr_notify.get_rt_score(MockCfg, 'tt1234567') == '?'
 
 
+class TestGetTmdbReleaseDates:
+    US_RESPONSE = {
+        'results': [
+            {
+                'iso_3166_1': 'US',
+                'release_dates': [
+                    {'type': 4, 'release_date': '2025-01-15T00:00:00.000Z'},
+                    {'type': 5, 'release_date': '2025-02-04T00:00:00.000Z'},
+                ],
+            }
+        ]
+    }
+
+    def test_returns_digital_and_physical_dates(self):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = self.US_RESPONSE
+        with patch('radarr_notify.requests.get', return_value=mock_resp):
+            digital, physical = radarr_notify.get_tmdb_release_dates(MockCfg, 27205)
+        assert digital == date(2025, 1, 15)
+        assert physical == date(2025, 2, 4)
+
+    def test_returns_none_none_on_error(self):
+        with patch('radarr_notify.requests.get', side_effect=Exception('error')):
+            digital, physical = radarr_notify.get_tmdb_release_dates(MockCfg, 27205)
+        assert digital is None
+        assert physical is None
+
+    def test_prefers_us_over_other_regions(self):
+        response = {
+            'results': [
+                {
+                    'iso_3166_1': 'GB',
+                    'release_dates': [{'type': 4, 'release_date': '2025-01-10T00:00:00.000Z'}],
+                },
+                {
+                    'iso_3166_1': 'US',
+                    'release_dates': [{'type': 4, 'release_date': '2025-01-15T00:00:00.000Z'}],
+                },
+            ]
+        }
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = response
+        with patch('radarr_notify.requests.get', return_value=mock_resp):
+            digital, _ = radarr_notify.get_tmdb_release_dates(MockCfg, 27205)
+        assert digital == date(2025, 1, 15)
+
+    def test_returns_none_when_no_matching_types(self):
+        response = {
+            'results': [
+                {
+                    'iso_3166_1': 'US',
+                    'release_dates': [{'type': 3, 'release_date': '2025-01-01T00:00:00.000Z'}],
+                }
+            ]
+        }
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = response
+        with patch('radarr_notify.requests.get', return_value=mock_resp):
+            digital, physical = radarr_notify.get_tmdb_release_dates(MockCfg, 27205)
+        assert digital is None
+        assert physical is None
+
+
 class TestGetTmdbDirectors:
     def test_single_director(self):
         mock_resp = MagicMock()
@@ -224,6 +288,19 @@ TMDB_FIND_RESULT = {
 }
 
 
+TMDB_RELEASE_DATES_RESULT = {
+    'results': [
+        {
+            'iso_3166_1': 'US',
+            'release_dates': [
+                {'type': 4, 'release_date': '2010-12-01T00:00:00.000Z'},
+                {'type': 5, 'release_date': '2010-12-07T00:00:00.000Z'},
+            ],
+        }
+    ]
+}
+
+
 def _mock_get(url, **kwargs):
     m = MagicMock()
     m.raise_for_status = MagicMock()
@@ -237,7 +314,9 @@ def _mock_get(url, **kwargs):
         m.json.return_value = {'Ratings': [{'Source': 'Rotten Tomatoes', 'Value': '87%'}]}
     elif 'themoviedb.org/3/find' in url:
         m.json.return_value = TMDB_FIND_RESULT
-    elif 'themoviedb.org/3/movie' in url:
+    elif 'release_dates' in url:
+        m.json.return_value = TMDB_RELEASE_DATES_RESULT
+    elif 'credits' in url:
         m.json.return_value = {'crew': [{'name': 'Christopher Nolan', 'job': 'Director'}]}
     return m
 
@@ -315,6 +394,54 @@ class TestRun:
         fields = mock_post.call_args.kwargs['json']['embeds'][1]['fields']
         trailer = next(f for f in fields if f['name'] == 'Trailer')
         assert trailer['value'] == 'None'
+
+    def _release_field(self, mock_post):
+        fields = mock_post.call_args.kwargs['json']['embeds'][1]['fields']
+        return next(
+            f for f in fields
+            if f['name'] in ('Digital Release', 'Physical Release', 'Digital/Physical Release')
+        )
+
+    def test_release_label_shows_digital_when_nearest(self):
+        today = datetime.now(timezone.utc).date()
+        digital_date  = today - timedelta(days=5)
+        physical_date = today - timedelta(days=30)
+        with patch.dict(os.environ, RADARR_ENV), \
+             patch('radarr_notify.requests.get', side_effect=_mock_get), \
+             patch('radarr_notify.get_tmdb_release_dates', return_value=(digital_date, physical_date)), \
+             patch('radarr_notify.requests.post') as mock_post:
+            mock_post.return_value.text = 'ok'
+            radarr_notify.run(MockCfg)
+        assert self._release_field(mock_post)['name'] == 'Digital Release'
+
+    def test_release_label_shows_physical_when_nearest(self):
+        today = datetime.now(timezone.utc).date()
+        digital_date  = today - timedelta(days=30)
+        physical_date = today - timedelta(days=5)
+        with patch.dict(os.environ, RADARR_ENV), \
+             patch('radarr_notify.requests.get', side_effect=_mock_get), \
+             patch('radarr_notify.get_tmdb_release_dates', return_value=(digital_date, physical_date)), \
+             patch('radarr_notify.requests.post') as mock_post:
+            mock_post.return_value.text = 'ok'
+            radarr_notify.run(MockCfg)
+        assert self._release_field(mock_post)['name'] == 'Physical Release'
+
+    def test_release_label_fallback_when_no_dates(self):
+        def mock_get_no_physical(url, **kwargs):
+            m = _mock_get(url, **kwargs)
+            if 'api/v3/movie/' in url and 'qualityprofile' not in url:
+                m.json.return_value = {k: v for k, v in RADARR_DATA.items() if k != 'physicalRelease'}
+            return m
+
+        with patch.dict(os.environ, RADARR_ENV), \
+             patch('radarr_notify.requests.get', side_effect=mock_get_no_physical), \
+             patch('radarr_notify.get_tmdb_release_dates', return_value=(None, None)), \
+             patch('radarr_notify.requests.post') as mock_post:
+            mock_post.return_value.text = 'ok'
+            radarr_notify.run(MockCfg)
+        field = self._release_field(mock_post)
+        assert field['name'] == 'Digital/Physical Release'
+        assert field['value'] == 'None'
 
     def test_missing_poster_uses_fallback_image(self):
         def mock_get_no_poster(url, **kwargs):
